@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Motor de Leads — Reprocessamento</title>
+<style>
+  :root { --bg:#0f172a; --card:#1e293b; --fg:#e2e8f0; --mut:#94a3b8; --ok:#22c55e; --fail:#ef4444; --pend:#eab308; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,sans-serif; background:var(--bg); color:var(--fg); }
+  header { padding:16px 24px; border-bottom:1px solid #334155; display:flex; gap:16px; align-items:center; }
+  h1 { font-size:18px; margin:0; }
+  .filters { margin-left:auto; display:flex; gap:8px; }
+  select, button { background:var(--card); color:var(--fg); border:1px solid #334155; border-radius:8px; padding:8px 12px; cursor:pointer; }
+  button:hover { border-color:#64748b; }
+  main { padding:24px; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th, td { text-align:left; padding:10px 12px; border-bottom:1px solid #334155; }
+  th { color:var(--mut); font-weight:600; }
+  .badge { padding:2px 8px; border-radius:999px; font-size:12px; font-weight:600; }
+  .processed { background:rgba(34,197,94,.15); color:var(--ok); }
+  .failed { background:rgba(239,68,68,.15); color:var(--fail); }
+  .pending { background:rgba(234,179,8,.15); color:var(--pend); }
+  .err { color:var(--fail); font-size:12px; max-width:280px; }
+  .retry { padding:4px 10px; font-size:12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Motor de Leads — Reprocessamento</h1>
+  <div class="filters">
+    <select id="status">
+      <option value="">Todos</option>
+      <option value="failed" selected>Falhos</option>
+      <option value="pending">Pendentes</option>
+      <option value="processed">Processados</option>
+    </select>
+    <button onclick="load()">Atualizar</button>
+  </div>
+</header>
+<main>
+  <table>
+    <thead>
+      <tr><th>Origem</th><th>Tenant</th><th>Nome</th><th>Contato</th><th>Status</th><th>Tent.</th><th>Erro</th><th></th></tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+</main>
+<script>
+async function load() {
+  const status = document.getElementById('status').value;
+  const res = await fetch('/api/leads?status=' + encodeURIComponent(status));
+  const leads = await res.json();
+  const tb = document.getElementById('rows');
+  tb.innerHTML = '';
+  (leads || []).forEach(l => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${l.source}</td>
+      <td>${l.tenant_id}</td>
+      <td>${l.nome || '-'}</td>
+      <td>${l.email || l.telefone || '-'}</td>
+      <td><span class="badge ${l.status}">${l.status}</span></td>
+      <td>${l.attempts}</td>
+      <td class="err">${l.error_log || ''}</td>
+      <td>${l.status === 'failed' ? `<button class="retry" onclick="retry('${l.id}')">Reprocessar</button>` : ''}</td>`;
+    tb.appendChild(tr);
+  });
+}
+async function retry(id) {
+  await fetch('/api/leads/retry?id=' + encodeURIComponent(id), { method: 'POST' });
+  setTimeout(load, 500);
+}
+load();
+setInterval(load, 15000);
+</script>
+</body>
+</html>
