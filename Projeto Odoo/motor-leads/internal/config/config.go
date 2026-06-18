@@ -14,7 +14,7 @@ type Config struct {
 func Load() Config {
 	return Config{
 		HTTPAddr: env("HTTP_ADDR", ":8080"),
-		DSN:      env("DATABASE_URL", "postgres://leads:leads@localhost:5432/leads?sslmode=disable"),
+		DSN:      env("DATABASE_URL", "postgres://postgres:lutador123@localhost:5432/leads?sslmode=disable"),
 		Workers:  envInt("QUEUE_WORKERS", 8),
 	}
 }
